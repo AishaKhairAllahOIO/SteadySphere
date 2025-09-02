@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
 from playsound import playsound
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QApplication,QWidget,QVBoxLayout,QHBoxLayout,QPushButton,QLabel
 from queue import Queue
 # import serial
 import sys
@@ -85,16 +87,16 @@ class ColorTracker:
                     ballCenter_X=int(M["m10"]/M["m00"])
                     ballCenter_Y=int(M["m01"]/M["m00"])
                     if radius is not None and radius>10:
-                        cv.circle(frame,(int(ballCenter_X),int(ballCenter_Y)),int(radius),(0, 0, 255),4)
+                        cv.circle(frame,(int(ballCenter_X),int(ballCenter_Y)),int(radius),(0,0,255),4)
                         text_size,_=cv.getTextSize(f"X={int(ballCenter_X)}, Y={int(ballCenter_Y)}",cv.FONT_HERSHEY_SIMPLEX,0.6,2)
                         text_x=ballCenter_X+10
                         text_y=ballCenter_Y-10
                         rect_start=(text_x-5,text_y-text_size[1]-5)
                         rect_end=(text_x+text_size[0]+5,text_y+5)
-                        cv.rectangle(frame, rect_start, rect_end, (0, 128, 255), -1)
-                        cv.putText(frame,f"X={int(ballCenter_X)}, Y={int(ballCenter_Y)}",(text_x, text_y),cv.FONT_HERSHEY_SIMPLEX,0.6,(255, 255, 255),2)
+                        cv.rectangle(frame,rect_start,rect_end,(0,128,255),-1)
+                        cv.putText(frame,f"X={int(ballCenter_X)}, Y={int(ballCenter_Y)}",(text_x,text_y),cv.FONT_HERSHEY_SIMPLEX,0.6,(255,255,255),2)
                         cv.line(frame,(ballCenter_X,0),(ballCenter_X,frame.shape[0]),(0,128,255),2)
-                        cv.line(frame,(0,ballCenter_Y),(frame.shape[1], ballCenter_Y),(0,128,255),2)
+                        cv.line(frame,(0,ballCenter_Y),(frame.shape[1],ballCenter_Y),(0,128,255),2)
                         cv.circle(frame,(ballCenter_X,ballCenter_Y),5,(0,0,255),-1)
                
                     return mask_clean,ballCenter_X,ballCenter_Y              
@@ -120,16 +122,15 @@ class ColorTracker:
                     cv.line(frame,(platform_X,0),(platform_X,frame.shape[0]),(128,128,128),2)
                     cv.line(frame,(0,platform_Y),(frame.shape[1],platform_Y),(128,128,128),2)
                     cv.circle(frame,(platform_X,platform_Y),5,(0,0,0),-1)
-                    text_size,_=cv.getTextSize( f"X={platform_X}, Y={platform_Y}",cv.FONT_HERSHEY_SIMPLEX,0.6,2)
+                    text_size,_=cv.getTextSize(f"X={platform_X}, Y={platform_Y}",cv.FONT_HERSHEY_SIMPLEX,0.6,2)
                     text_x=platform_X+10
                     text_y=platform_Y+10
                     cv.rectangle(frame,(text_x-5,text_y-text_size[1]-5),(text_x+text_size[0]+5,text_y+5),(192,192,192),-1)
-                    cv.putText(frame, f"X={platform_X}, Y={platform_Y}",(text_x, text_y),cv.FONT_HERSHEY_SIMPLEX,0.6,(64,64,64),2)
+                    cv.putText(frame, f"X={platform_X}, Y={platform_Y}",(text_x,text_y),cv.FONT_HERSHEY_SIMPLEX,0.6,(64,64,64),2)
                 
-                    return mask_clean,platform_X, platform_Y
+                    return mask_clean,platform_X,platform_Y
         return mask_clean,None,None
     
-
     def order_points(self,points):
         rect=np.zeros((4,2),dtype="float32")
         s=points.sum(axis=1)
@@ -144,7 +145,7 @@ class ColorTracker:
     def track_maze_border(self,frame,HSV_frame,lower_color,upper_color):
         mask_clean,contours=self.prepareFrameForContour(HSV_frame,lower_color,upper_color,cv.MORPH_RECT)
 
-        contours, _=cv.findContours(mask_clean,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
+        contours,_=cv.findContours(mask_clean,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
         if not contours:
             return None,None,None
         best_contour=max(contours,key=cv.contourArea)
@@ -185,7 +186,7 @@ class PID:
         dt=current_time-self.last_time if self.last_time else 0
         self.last_time=current_time
 
-        self.integral +=current_error*dt
+        self.integral+=current_error*dt
         derivative=(current_error-self.previous_error)/dt if dt>0 else 0
         output=self.Kp*current_error+self.Ki*self.integral+self.Kd*derivative
         self.previous_error=current_error
@@ -193,8 +194,8 @@ class PID:
         return output
     
     @staticmethod
-    def tune_by_key(key, pid_x, pid_y, save_path="C:/Users/ASUS/SteadySphere/data/text/PID_value.txt"):
-        handled = True
+    def tune_by_key(key,pid_x,pid_y,save_path="C:/Users/ASUS/SteadySphere/data/text/PID_value.txt"):
+        handled=True
 
         if key==ord('w'):
             pid_x.Kp+=0.01
@@ -232,13 +233,13 @@ class PID:
         elif key==ord('j'): 
             pid_y.Kd=max(pid_y.Kd-0.01,0)
             print(f"Kd Y={pid_y.Kd:.3f}")
-        elif key == ord('z'):
-            pid_x.Kp = 0
-            pid_x.Ki = 0
-            pid_x.Kd = 0
-            pid_y.Kp = 0
-            pid_y.Ki = 0
-            pid_y.Kd = 0
+        elif key==ord('z'):
+            pid_x.Kp=0
+            pid_x.Ki=0
+            pid_x.Kd=0
+            pid_y.Kp=0
+            pid_y.Ki=0
+            pid_y.Kd=0
             print("PID values reset to 0")
         elif key==ord('p'): 
             with open("PID_value.txt","w") as file:
@@ -246,10 +247,9 @@ class PID:
                 file.write(f"{pid_y.Kp},{pid_y.Ki},{pid_y.Kd}\n")
             print("PID values saved to pid_value.txt")
         else:
-            handled = False
+            handled=False
 
         return handled
-    
   
 class Maze:
 
@@ -257,9 +257,9 @@ class Maze:
         pass
 
     def maze_to_matrix(self,maze_img,grid_size,wall_lower_color,wall_upper_color,path_lower_color,path_upper_color):
-        HSV_frame= cv.cvtColor(maze_img, cv.COLOR_BGR2HSV)
-        mask_black = cv.inRange(HSV_frame,wall_lower_color,wall_upper_color)
-        mask_green = cv.inRange(HSV_frame,path_lower_color,path_upper_color)
+        HSV_frame=cv.cvtColor(maze_img,cv.COLOR_BGR2HSV)
+        mask_black=cv.inRange(HSV_frame,wall_lower_color,wall_upper_color)
+        mask_green=cv.inRange(HSV_frame,path_lower_color,path_upper_color)
         h,w=maze_img.shape[:2]
         rows,cols=grid_size
         cell_h,cell_w=h//rows,w//cols
@@ -275,64 +275,63 @@ class Maze:
 
         return maze_matrix
     
-    def downscale_maze(self, maze, block_size=2):
-        h, w = maze.shape
-        new_h, new_w = h // block_size, w // block_size
-        new_maze = np.zeros((new_h, new_w), dtype=np.int32)
+    def downscale_maze(self,maze,block_size=2):
+        h,w=maze.shape
+        new_h,new_w=h//block_size,w//block_size
+        new_maze=np.zeros((new_h,new_w),dtype=np.int32)
 
         for i in range(new_h):
             for j in range(new_w):
-                block = maze[i*block_size:(i+1)*block_size, j*block_size:(j+1)*block_size]
-                if np.any(block == 1): 
-                    new_maze[i, j] = 1
+                block=maze[i*block_size:(i+1)*block_size,j*block_size:(j+1)*block_size]
+                if np.any(block==1): 
+                    new_maze[i,j]=1
                 else:
-                    new_maze[i, j] = 0
+                    new_maze[i,j]=0
         return new_maze
 
-    def save_maze(self,maze, filename):
-        with open(filename, "w") as f:
+    def save_maze(self,maze,filename):
+        with open(filename,"w") as f:
             for row in maze:
-                f.write(",".join(str(cell) for cell in row) + "\n")
-
+                f.write(",".join(str(cell) for cell in row)+"\n")
 
     @staticmethod
     def solve_maze(maze_matrix,start=None,end=None):
         rows,cols=maze_matrix.shape
         if end is None:
-            end = (rows-1, cols-1)
+            end=(rows-1,cols-1)
 
-        maze_copy = [[' ' if maze_matrix[r,c]==0 else '#' for c in range(cols)] for r in range(rows)]
+        maze_copy=[[' ' if maze_matrix[r,c]==0 else '#' for c in range(cols)] for r in range(rows)]
 
-        graph = {}
+        graph={}
         for r in range(rows):
             for c in range(cols):
-                if maze_copy[r][c] != '#':
-                    adj = []
-                    if r+1<rows and maze_copy[r+1][c] != '#': adj.append((r+1,c))
-                    if r-1>=0 and maze_copy[r-1][c] != '#': adj.append((r-1,c))
-                    if c+1<cols and maze_copy[r][c+1] != '#': adj.append((r,c+1))
-                    if c-1>=0 and maze_copy[r][c-1] != '#': adj.append((r,c-1))
-                    graph[(r,c)] = adj
+                if maze_copy[r][c]!='#':
+                    adj=[]
+                    if r+1<rows and maze_copy[r+1][c]!='#':adj.append((r+1,c))
+                    if r-1>=0 and maze_copy[r-1][c]!='#':adj.append((r-1,c))
+                    if c+1<cols and maze_copy[r][c+1]!='#':adj.append((r,c+1))
+                    if c-1>=0 and maze_copy[r][c-1]!='#':adj.append((r,c-1))
+                    graph[(r,c)]=adj
 
-        visited = set()
-        queue = Queue()
+        visited=set()
+        queue=Queue()
         queue.put([start])
-        path_found = []
+        path_found=[]
 
         while not queue.empty():
-            path = queue.get()
-            node = path[-1]
-            if node == end:
-                path_found = path
+            path=queue.get()
+            node=path[-1]
+            if node==end:
+                path_found=path
                 for r, c in path:
-                    if maze_copy[r][c] == ' ':
-                        maze_copy[r][c] = 'p'
+                    if maze_copy[r][c]==' ':
+                        maze_copy[r][c]='p'
                 break
             if node not in visited:
                 visited.add(node)
-                for neighbor in graph.get(node, []):
+                for neighbor in graph.get(node,[]):
                     if neighbor not in visited:
-                        queue.put(path + [neighbor])
+                        queue.put(path+[neighbor])
 
         return maze_copy, path_found   
 
@@ -389,52 +388,83 @@ class ProjectManager(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Steady sphere")
-        self.setGeometry(100,100,1200,700)
+        self.setGeometry(100,50,1200,600)
 
         self.setStyleSheet("""
             QWidget {
-                background-color: #121212;   
+                background-color: #FFEB00;   
                 color: #E0E0E0;             
                 font-family: Consolas, monospace; 
                 font-size: 18px;
             }
             QPushButton {
                 background-color: #1F1F1F;
-                border: 2px solid #00FF88;  
+                border: 2px solid #62dc19;  
                 border-radius: 10px;
                 padding: 15px;
-                color: #00FF88;
+                color: #62dc19;
                 font-size: 20px;
             }
             QPushButton:hover {
-                background-color: #00FF88;
+                background-color: #62dc19;
                 color: #121212;
             }
             QLabel {
-                font-size: 22px;
+                font-size: 50px;
                 font-weight: bold;
-                color: #00BFFF;
+                color: #000000;
                 margin-bottom: 20px;
             }
         """)
 
-        layout = QVBoxLayout()
+        layout=QVBoxLayout()
+        image_layout=QHBoxLayout()
 
-        self.label = QLabel("Choose a project to run:")
-        layout.addWidget(self.label)
+        self.image2_label=QLabel(self)
+        pixmap=QPixmap("C:/Users/TECH SHOP/Desktop/mijo/Projectes/SteadySphere/data/photos/experience.png")
+        self.image2_label.setPixmap(pixmap)
+        self.image2_label.setScaledContents(True)
+        self.image2_label.setFixedSize(150,150)
+        image_layout.addWidget(self.image2_label)
+
+        self.image1_label=QLabel(self)
+        pixmap=QPixmap("C:/Users/TECH SHOP/Desktop/mijo/Projectes/SteadySphere/data/photos/steadySphere.jpg")
+        self.image1_label.setPixmap(pixmap)
+        self.image1_label.setScaledContents(True)
+        self.image1_label.setFixedSize(700,500)
+        image_layout.addWidget(self.image1_label)
+
+        self.image3_label=QLabel(self)
+        pixmap=QPixmap("C:/Users/TECH SHOP/Desktop/mijo/Projectes/SteadySphere/data/photos/medicine-ball.png")
+        self.image3_label.setPixmap(pixmap)
+        self.image3_label.setScaledContents(True)
+        self.image3_label.setFixedSize(150,150)
+        image_layout.addWidget(self.image3_label)
+
+        layout.addLayout(image_layout)
+
+        self.label=QLabel("Choose a project to run:")
+        layout.addWidget(self.label,alignment=Qt.AlignHCenter)
 
         self.btn_pid=QPushButton("PID Ball Balance")
         self.btn_pid.clicked.connect(self.run_pid_ball_balance)
         layout.addWidget(self.btn_pid)
 
-        self.btn_maze = QPushButton("Maze Game")
+        self.btn_maze=QPushButton("Maze Game")
         self.btn_maze.clicked.connect(self.run_maze_game)
         layout.addWidget(self.btn_maze)
 
         self.setLayout(layout)
 
     def run_pid_ball_balance(self,platform_center_locked=False,saved_platform_X=None,saved_platform_Y=None,ballCenter_X=None,ballCenter_Y=None):        
+        self.hide()
+        
         print("PID Ball")
+
+        error_history_x=[]
+        error_history_y=[]
+        time_history=[]
+        start_time=time.time()
 
         while True:
             ret,frame=videoCapture.read()
@@ -483,16 +513,15 @@ class ProjectManager(QWidget):
             if ballCenter_Y is not None and saved_platform_Y is not None:
                 error_y=saved_platform_Y-ballCenter_Y
                 print(f"Error Y={error_y}", "ERROR")
-                if abs(error_y) <5:
-                    output_y = 0
-                    print("Y Dead Zone-No correction needed.","INFO")
+                if abs(error_y)<5:
+                    output_y=0
+                    print("Y Dead Zone-No correction needed.", "INFO")
                 else:
-                    output_y = pid_y.PIDcompute(error_y)
+                    output_y=pid_y.PIDcompute(error_y)
                     print(f"pid y={output_y}", "INFO")
 
                 angle_y=gimbalController_y.mapPIDtoAngle(output_y,-100,100,140,180)
                 print(f"angle y={angle_y}", "INFO")
-
 
             # if 'angle_x' in locals() and 'angle_y' in locals():
             #     try:
@@ -504,6 +533,12 @@ class ProjectManager(QWidget):
             #     except Exception as e:
             #             log_msg(f"Failed to send data to Arduino: {e}","ERROR")
 
+            if ballCenter_X is not None and saved_platform_X is not None:
+                error_x=saved_platform_X-ballCenter_X
+                current_time=time.time()-start_time
+                error_history_x.append(error_x)
+                time_history.append(current_time)
+    
             mask_color=cv.cvtColor(mask_clean,cv.COLOR_GRAY2BGR)
             mergeframe=np.hstack((frame,mask_color))
             cv.imshow("Tracking",mergeframe)
@@ -512,13 +547,34 @@ class ProjectManager(QWidget):
                 break
             else:
                 PID.tune_by_key(key, pid_x, pid_y)
-
         
+        if error_history_x:
+            plt.style.use('seaborn-dark')
+            fig, ax=plt.subplots()
+            ax.set_xlabel("Time (s)")
+            ax.set_ylabel("Error X")
+            ax.set_title("PID Error vs Time")
+            line,=ax.plot([],[],'r-',lw=2)
+            ax.set_xlim(0, max(time_history))
+            ax.set_ylim(min(error_history_x)-5,max(error_history_x)+5)
+
+            def init():
+                line.set_data([],[])
+                return line,
+
+            def update(frame):
+                line.set_data(time_history[:frame],error_history_x[:frame])
+                return line,
+
+            ani=FuncAnimation(fig,update,frames=len(time_history),init_func=init,blit=True,interval=50)
+            plt.show()
         
     def run_maze_game(self):
+        self.hide()
+
         print("Maze Game project launched")
-        downscaled_maze = None
-        path = []
+        downscaled_maze=None
+        path=[]
 
         while True:
             ret,frame=videoCapture.read()
@@ -535,24 +591,24 @@ class ProjectManager(QWidget):
             print("\n")
 
             if ballCenter_X is not None and ballCenter_Y is not None and maze_img is not None and downscaled_maze is not None and path:
-                maze_height, maze_width = maze_img.shape[:2]
-                rows, cols = downscaled_maze.shape
-                cell_w = maze_width / cols
-                cell_h = maze_height / rows
+                maze_height,maze_width=maze_img.shape[:2]
+                rows, cols=downscaled_maze.shape
+                cell_w=maze_width/cols
+                cell_h=maze_height/rows
 
                 if path:  
-                    target_r, target_c = path[0]
-                    target_x = int((target_c + 0.5) * cell_w)
-                    target_y = int((target_r + 0.5) * cell_h)
+                    target_r,target_c=path[0]
+                    target_x=int((target_c+0.5)*cell_w)
+                    target_y=int((target_r+0.5)*cell_h)
 
-                    error_x = target_x - ballCenter_X
-                    error_y = target_y - ballCenter_Y
+                    error_x=target_x-ballCenter_X
+                    error_y=target_y-ballCenter_Y
 
-                    output_x = pid_x.PIDcompute(error_x)
-                    output_y = pid_y.PIDcompute(error_y)
+                    output_x=pid_x.PIDcompute(error_x)
+                    output_y=pid_y.PIDcompute(error_y)
 
-                    angle_x = gimbalController_x.mapPIDtoAngle(output_x,-100,100,125,155)
-                    angle_y = gimbalController_y.mapPIDtoAngle(output_y,-100,100,140,180)
+                    angle_x=gimbalController_x.mapPIDtoAngle(output_x,-100,100,125,155)
+                    angle_y=gimbalController_y.mapPIDtoAngle(output_y,-100,100,140,180)
 
                     if path and abs(error_x)<5 and abs(error_y)<5:
                         path.pop(0)
@@ -569,12 +625,12 @@ class ProjectManager(QWidget):
             #             log_msg(f"Failed to send data to Arduino: {e}","ERROR")
 
             mask_color=cv.cvtColor(mask_clean,cv.COLOR_GRAY2BGR)
-            if maze_mask is not None and maze_mask.size > 0:
+            if maze_mask is not None and maze_mask.size>0:
                 mask_blue=cv.cvtColor(maze_mask,cv.COLOR_GRAY2BGR)
                 mask_color=cv.bitwise_or(mask_color,mask_blue)
 
             else:
-                mask_blue = np.zeros_like(frame)
+                mask_blue=np.zeros_like(frame)
 
             mergeframe=np.hstack((frame,mask_color))
             cv.imshow("Tracking",mergeframe)
@@ -584,35 +640,32 @@ class ProjectManager(QWidget):
             elif key==ord('m'):
                 maze_img,maze_rect,_=colorTracker.track_maze_border(frame,HSV_frame,lower_blue,upper_blue)
                 if maze_img is not None:
-                    cv.imshow("Cropped Maze", maze_img)
-                    print("Maze cropped!", "CRITICAL")
-                    save_path = "C:/Users/ASUS/SteadySphere/data/images/CroppedMaze.png" 
-                    cv.imwrite(save_path, maze_img)
-                    print(f"Maze saved to {save_path}", "INFO")
-                    maze_matrix = maze.maze_to_matrix(maze_img, grid_size=(40,40),wall_lower_color=wall_lower_color, wall_upper_color=wall_upper_color,path_lower_color=path_lower_color, path_upper_color=path_upper_color)
-                    downscaled_maze = maze.downscale_maze(maze_matrix, block_size=2)
-                    maze.save_maze(downscaled_maze, "C:/Users/ASUS/SteadySphere/data/text/MiniMazeMatrix.txt")
+                    cv.imshow("Cropped Maze",maze_img)
+                    print("Maze cropped!","CRITICAL")
+                    save_path="C:/Users/ASUS/SteadySphere/data/images/CroppedMaze.png" 
+                    cv.imwrite(save_path,maze_img)
+                    print(f"Maze saved to {save_path}","INFO")
+                    maze_matrix=maze.maze_to_matrix(maze_img,grid_size=(40,40),wall_lower_color=wall_lower_color,wall_upper_color=wall_upper_color,path_lower_color=path_lower_color,path_upper_color=path_upper_color)
+                    downscaled_maze=maze.downscale_maze(maze_matrix,block_size=2)
+                    maze.save_maze(downscaled_maze,"C:/Users/ASUS/SteadySphere/data/text/MiniMazeMatrix.txt")
 
-                    start = (downscaled_maze.shape[0]-1, downscaled_maze.shape[1]-1)
-                    end = (0,0) 
-                    maze_solved, path = maze.solve_maze(downscaled_maze,start=start, end=end)
+                    start=(downscaled_maze.shape[0]-1,downscaled_maze.shape[1]-1)
+                    end=(0,0) 
+                    maze_solved,path=maze.solve_maze(downscaled_maze,start=start,end=end)
                 
                     maze_sol="C:/Users/ASUS/SteadySphere/data/text/MazeSolution.txt"
-                    with open(maze_sol, 'w') as f:
+                    with open(maze_sol,'w') as f:
                         for row in maze_solved:
-                            f.write(''.join(row) + '\n')
+                            f.write(''.join(row)+'\n')
 
-
-                    save_path_txt = "C:/Users/ASUS/SteadySphere/data/text/MazeMatrix.txt"
-                    with open(save_path_txt, "w") as f:
+                    save_path_txt="C:/Users/ASUS/SteadySphere/data/text/MazeMatrix.txt"
+                    with open(save_path_txt,"w") as f:
                         for row in maze_matrix:
-                            row_str = ",".join(str(cell) for cell in row)
-                            f.write(row_str + "\n")
-
+                            row_str=",".join(str(cell) for cell in row)
+                            f.write(row_str+"\n")
             else:
-                    PID.tune_by_key(key, pid_x, pid_y)
+                    PID.tune_by_key(key,pid_x,pid_y)
             
-
 if __name__=="__main__":
     app=QApplication(sys.argv)
     launcher=ProjectManager()
