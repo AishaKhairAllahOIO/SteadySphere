@@ -461,11 +461,6 @@ class ProjectManager(QWidget):
         
         print("PID Ball")
 
-        error_history_x=[]
-        error_history_y=[]
-        time_history=[]
-        start_time=time.time()
-
         while True:
             ret,frame=videoCapture.read()
             if not ret:
@@ -532,12 +527,6 @@ class ProjectManager(QWidget):
             #             log_msg(f"Arduino response: {response}","INFO")
             #     except Exception as e:
             #             log_msg(f"Failed to send data to Arduino: {e}","ERROR")
-
-            if ballCenter_X is not None and saved_platform_X is not None:
-                error_x=saved_platform_X-ballCenter_X
-                current_time=time.time()-start_time
-                error_history_x.append(error_x)
-                time_history.append(current_time)
     
             mask_color=cv.cvtColor(mask_clean,cv.COLOR_GRAY2BGR)
             mergeframe=np.hstack((frame,mask_color))
@@ -547,27 +536,6 @@ class ProjectManager(QWidget):
                 break
             else:
                 PID.tune_by_key(key, pid_x, pid_y)
-        
-        if error_history_x:
-            plt.style.use('seaborn-dark')
-            fig, ax=plt.subplots()
-            ax.set_xlabel("Time (s)")
-            ax.set_ylabel("Error X")
-            ax.set_title("PID Error vs Time")
-            line,=ax.plot([],[],'r-',lw=2)
-            ax.set_xlim(0, max(time_history))
-            ax.set_ylim(min(error_history_x)-5,max(error_history_x)+5)
-
-            def init():
-                line.set_data([],[])
-                return line,
-
-            def update(frame):
-                line.set_data(time_history[:frame],error_history_x[:frame])
-                return line,
-
-            ani=FuncAnimation(fig,update,frames=len(time_history),init_func=init,blit=True,interval=50)
-            plt.show()
         
     def run_maze_game(self):
         self.hide()
